@@ -1,5 +1,6 @@
 package com.afollestad.polar.services;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.net.Uri;
 import android.preference.PreferenceManager;
@@ -18,6 +19,7 @@ public class PolarWallpaperSource extends RemoteMuzeiArtSource {
 
   private static final int ROTATE_TIME_MILLIS = 3 * 60 * 60 * 1000; // rotate every 3 hours
 
+  @SuppressLint("ApplySharedPref")
   private void setActiveIndex(int index) {
     PreferenceManager.getDefaultSharedPreferences(getApplicationContext())
         .edit()

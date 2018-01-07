@@ -34,14 +34,7 @@ public class ProgressDialogFragment extends DialogFragment {
   public void setContent(@StringRes final int content) {
     final MaterialDialog dialog = (MaterialDialog) getDialog();
     if (getActivity() != null && !getActivity().isFinishing() && dialog != null) {
-      getActivity()
-          .runOnUiThread(
-              new Runnable() {
-                @Override
-                public void run() {
-                  dialog.setContent(content);
-                }
-              });
+      getActivity().runOnUiThread(() -> dialog.setContent(content));
     }
   }
 

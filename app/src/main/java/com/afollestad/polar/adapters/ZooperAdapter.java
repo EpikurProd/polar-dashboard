@@ -27,7 +27,7 @@ public class ZooperAdapter extends RecyclerView.Adapter<ZooperAdapter.ZooperVH> 
 
   private static final String GOOGLE_PLAY_URL = "https://play.google.com/store/apps/details?id=%s";
   private static final String ZOOPER_PRO_PKG = "org.zooper.zwpro";
-  public static final int SEARCH_RESULT_LIMIT = 10;
+  private static final int SEARCH_RESULT_LIMIT = 10;
 
   private final Object LOCK = new Object();
 
@@ -155,7 +155,7 @@ public class ZooperAdapter extends RecyclerView.Adapter<ZooperAdapter.ZooperVH> 
     final TextView name;
     final CardView card;
 
-    public ZooperVH(View itemView, boolean listenForClick) {
+    ZooperVH(View itemView, boolean listenForClick) {
       super(itemView);
       background = ButterKnife.findById(itemView, R.id.background);
       image = ButterKnife.findById(itemView, R.id.image);

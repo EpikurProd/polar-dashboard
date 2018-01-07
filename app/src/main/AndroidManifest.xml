@@ -22,10 +22,6 @@
         android:vmSafeMode="true"
         tools:ignore="AllowBackup,GoogleAppIndexingWarning,RtlEnabled,UnusedAttribute">
 
-        <meta-data
-            android:name="com.afollestad.polar.util.GlideConfiguration"
-            android:value="GlideModule" />
-
         <service
             android:name=".services.PolarWallpaperSource"
             android:description="@string/muzei_description"

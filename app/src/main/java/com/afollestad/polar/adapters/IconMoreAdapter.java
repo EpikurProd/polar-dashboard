@@ -11,16 +11,13 @@ import android.widget.ImageView;
 import com.afollestad.polar.R;
 import com.afollestad.polar.util.DrawableXmlParser;
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.resource.drawable.GlideDrawable;
-import com.bumptech.glide.request.animation.GlideAnimation;
-import com.bumptech.glide.request.target.SimpleTarget;
 import java.util.ArrayList;
 import java.util.List;
 
 public class IconMoreAdapter extends RecyclerView.Adapter<IconMoreAdapter.MainViewHolder> {
 
-  final Context mContext;
-  final ClickListener mListener;
+  private final Context mContext;
+  private final ClickListener mListener;
   private final int mIconsInAnimation;
   private final List<DrawableXmlParser.Icon> mIcons;
 
@@ -77,16 +74,7 @@ public class IconMoreAdapter extends RecyclerView.Adapter<IconMoreAdapter.MainVi
     if (res == 0) {
       holder.image.setBackgroundColor(Color.parseColor("#40000000"));
     } else {
-      Glide.with(c)
-          .load(res)
-          .into(
-              new SimpleTarget<GlideDrawable>() {
-                @Override
-                public void onResourceReady(
-                    GlideDrawable resource, GlideAnimation<? super GlideDrawable> glideAnimation) {
-                  holder.image.setImageDrawable(resource);
-                }
-              });
+      Glide.with(c).load(res).into(holder.image);
     }
   }
 
@@ -95,20 +83,14 @@ public class IconMoreAdapter extends RecyclerView.Adapter<IconMoreAdapter.MainVi
     void onClick(View view, int index);
   }
 
-  public class MainViewHolder extends RecyclerView.ViewHolder {
+  class MainViewHolder extends RecyclerView.ViewHolder {
 
     final ImageView image;
 
-    public MainViewHolder(View itemView) {
+    MainViewHolder(View itemView) {
       super(itemView);
-      image = (ImageView) itemView.findViewById(R.id.image);
-      itemView.setOnClickListener(
-          new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-              mListener.onClick(v, getAdapterPosition());
-            }
-          });
+      image = itemView.findViewById(R.id.image);
+      itemView.setOnClickListener(v -> mListener.onClick(v, getAdapterPosition()));
     }
   }
 }

@@ -32,15 +32,15 @@ public final class RequestLimiter {
         context.getSharedPreferences("[prl]", Context.MODE_PRIVATE));
   }
 
-  public static long sToMs(long s) {
+  private static long sToMs(long s) {
     return s * 1000;
   }
 
-  public static long msToS(long ms) {
+  private static long msToS(long ms) {
     return ms / 1000;
   }
 
-  public static void log(@NonNull String msg, @Nullable Object... args) {
+  private static void log(@NonNull String msg, @Nullable Object... args) {
     if (!BuildConfig.DEBUG) {
       return;
     }
@@ -68,6 +68,7 @@ public final class RequestLimiter {
     editor.commit();
   }
 
+  @SuppressLint("ApplySharedPref")
   public int allow(int allowedCount) {
     if (mLimitInterval <= 0) {
       // No limit interval set, disable limiting.

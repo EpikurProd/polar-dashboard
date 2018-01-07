@@ -44,13 +44,13 @@ public class BulletPointListViewAdapter
     return mItems != null ? mItems.length : 0;
   }
 
-  public static class ChangelogVH extends RecyclerView.ViewHolder {
+  static class ChangelogVH extends RecyclerView.ViewHolder {
 
     final TextView title;
 
-    public ChangelogVH(View itemView) {
+    ChangelogVH(View itemView) {
       super(itemView);
-      title = (TextView) itemView.findViewById(R.id.title);
+      title = itemView.findViewById(R.id.title);
     }
   }
 }

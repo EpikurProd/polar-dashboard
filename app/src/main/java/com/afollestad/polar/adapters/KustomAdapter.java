@@ -29,9 +29,7 @@ import java.util.Locale;
 public class KustomAdapter extends RecyclerView.Adapter<KustomAdapter.KustomVH> {
 
   private static final String GOOGLE_PLAY_URL = "https://play.google.com/store/apps/details?id=%s";
-
-  public static final int SEARCH_RESULT_LIMIT = 10;
-
+  private static final int SEARCH_RESULT_LIMIT = 10;
   private final Object LOCK = new Object();
 
   private final boolean mKustomInstalled;
@@ -146,7 +144,7 @@ public class KustomAdapter extends RecyclerView.Adapter<KustomAdapter.KustomVH> 
     final TextView title;
     final CardView card;
 
-    public KustomVH(View itemView, @NonNull String folder, boolean showInstaller) {
+    KustomVH(View itemView, @NonNull String folder, boolean showInstaller) {
       super(itemView);
       this.folder = folder;
       this.showInstaller = showInstaller;

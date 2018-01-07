@@ -4,6 +4,7 @@ import static com.afollestad.polar.fragments.WallpapersFragment.RQ_CROPANDSETWAL
 import static com.afollestad.polar.fragments.WallpapersFragment.RQ_VIEWWALLPAPER;
 import static com.afollestad.polar.viewer.ViewerActivity.STATE_CURRENT_POSITION;
 
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Fragment;
 import android.app.FragmentManager;
@@ -46,7 +47,6 @@ import com.afollestad.polar.R;
 import com.afollestad.polar.adapters.MainPagerAdapter;
 import com.afollestad.polar.config.Config;
 import com.afollestad.polar.dialogs.ChangelogDialog;
-import com.afollestad.polar.dialogs.InvalidLicenseDialog;
 import com.afollestad.polar.fragments.AboutFragment;
 import com.afollestad.polar.fragments.ApplyFragment;
 import com.afollestad.polar.fragments.HomeFragment;
@@ -59,20 +59,18 @@ import com.afollestad.polar.fragments.base.BasePageFragment;
 import com.afollestad.polar.kustom.KustomUtil;
 import com.afollestad.polar.ui.base.BaseDonateActivity;
 import com.afollestad.polar.util.DrawableXmlParser;
-import com.afollestad.polar.util.LicensingUtils;
 import com.afollestad.polar.util.PagesBuilder;
 import com.afollestad.polar.util.TintUtils;
 import com.afollestad.polar.util.Utils;
 import com.afollestad.polar.util.VC;
 import com.afollestad.polar.util.WallpaperUtils;
 import com.afollestad.polar.views.DisableableViewPager;
-import com.google.android.vending.licensing.Policy;
 import java.util.List;
 import java.util.Map;
 
 /** @author Aidan Follestad (afollestad) */
 public class MainActivity extends BaseDonateActivity
-    implements LicensingUtils.LicensingCallback, NavigationView.OnNavigationItemSelectedListener {
+    implements NavigationView.OnNavigationItemSelectedListener {
 
   @BindView(R.id.toolbar)
   Toolbar mToolbar;
@@ -247,32 +245,8 @@ public class MainActivity extends BaseDonateActivity
             R.id.drawer_about, R.drawable.tab_about, R.string.about, new AboutFragment()));
   }
 
-  public boolean retryLicenseCheck() {
-    return LicensingUtils.check(this, this);
-  }
-
-  @Override
-  public void onLicensingResult(boolean allow, int reason) {
-    if (allow) {
-      showChangelogIfNecessary(true);
-    } else {
-      InvalidLicenseDialog.show(this, reason == Policy.RETRY);
-    }
-  }
-
-  @Override
-  public void onLicensingError(int errorCode) {
-    Utils.showError(
-        this,
-        new Exception(
-            "License checking error occurred, make sure everything is setup correctly. Error code: "
-                + errorCode));
-  }
-
-  public void showChangelogIfNecessary(boolean licenseAllowed) {
-    if (!Config.get().changelogEnabled()) {
-      retryLicenseCheck();
-    } else if (licenseAllowed || retryLicenseCheck()) {
+  public void showChangelogIfNecessary() {
+    if (Config.get().changelogEnabled()) {
       final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
       final int currentVersion = BuildConfig.VERSION_CODE;
       if (currentVersion != prefs.getInt("changelog_version", -1)) {
@@ -313,14 +287,7 @@ public class MainActivity extends BaseDonateActivity
       return true;
     } else if (item.getItemId() == R.id.darkTheme) {
       darkTheme(!darkTheme());
-      mToolbar.postDelayed(
-          new Runnable() {
-            @Override
-            public void run() {
-              recreate();
-            }
-          },
-          500);
+      mToolbar.postDelayed(() -> recreate(), 500);
       return true;
     } else if (item.getItemId() == R.id.navDrawerMode) {
       item.setChecked(!item.isChecked());
@@ -331,6 +298,7 @@ public class MainActivity extends BaseDonateActivity
     return super.onOptionsItemSelected(item);
   }
 
+  @SuppressLint("RestrictedApi")
   private void setupNavDrawer() {
     assert mNavView != null;
     assert mDrawer != null;
@@ -345,24 +313,19 @@ public class MainActivity extends BaseDonateActivity
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
       mDrawer.setOnApplyWindowInsetsListener(
-          new View.OnApplyWindowInsetsListener() {
-
-            @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-            @Override
-            public WindowInsets onApplyWindowInsets(View v, WindowInsets insets) {
-              //TODO: Check if NavigationView needs bottom padding
-              WindowInsets drawerLayoutInsets =
-                  insets.replaceSystemWindowInsets(
-                      insets.getSystemWindowInsetLeft(),
-                      insets.getSystemWindowInsetTop(),
-                      insets.getSystemWindowInsetRight(),
-                      0);
-              mDrawerModeTopInset = drawerLayoutInsets.getSystemWindowInsetTop();
-              ((DrawerLayout) v)
-                  .setChildInsets(
-                      drawerLayoutInsets, drawerLayoutInsets.getSystemWindowInsetTop() > 0);
-              return insets;
-            }
+          (v, insets) -> {
+            //TODO: Check if NavigationView needs bottom padding
+            WindowInsets drawerLayoutInsets =
+                insets.replaceSystemWindowInsets(
+                    insets.getSystemWindowInsetLeft(),
+                    insets.getSystemWindowInsetTop(),
+                    insets.getSystemWindowInsetRight(),
+                    0);
+            mDrawerModeTopInset = drawerLayoutInsets.getSystemWindowInsetTop();
+            ((DrawerLayout) v)
+                .setChildInsets(
+                    drawerLayoutInsets, drawerLayoutInsets.getSystemWindowInsetTop() > 0);
+            return insets;
           });
     }
 
@@ -430,13 +393,7 @@ public class MainActivity extends BaseDonateActivity
   void invalidateNavViewSelection(int position) {
     assert mNavView != null;
     final int selectedId = mPages.get(position).drawerId;
-    mNavView.post(
-        new Runnable() {
-          @Override
-          public void run() {
-            mNavView.setCheckedItem(selectedId);
-          }
-        });
+    mNavView.post(() -> mNavView.setCheckedItem(selectedId));
   }
 
   @Override
@@ -484,19 +441,16 @@ public class MainActivity extends BaseDonateActivity
     setTitle(mPages.get(mPager.getCurrentItem()).titleRes);
 
     mPager.post(
-        new Runnable() {
-          @Override
-          public void run() {
-            final BasePageFragment frag =
-                (BasePageFragment)
-                    getFragmentManager().findFragmentByTag("page:" + mPager.getCurrentItem());
-            if (frag != null) {
-              frag.updateTitle();
-            }
+        () -> {
+          final BasePageFragment frag =
+              (BasePageFragment)
+                  getFragmentManager().findFragmentByTag("page:" + mPager.getCurrentItem());
+          if (frag != null) {
+            frag.updateTitle();
+          }
 
-            if (checkTabsLocation) {
-              moveTabsIfNeeded();
-            }
+          if (checkTabsLocation) {
+            moveTabsIfNeeded();
           }
         });
   }
@@ -517,6 +471,7 @@ public class MainActivity extends BaseDonateActivity
       ViewTreeObserver vto = mToolbar.getViewTreeObserver();
       vto.addOnGlobalLayoutListener(
           new ViewTreeObserver.OnGlobalLayoutListener() {
+            @SuppressLint("RestrictedApi")
             @SuppressWarnings("deprecation")
             @Override
             public void onGlobalLayout() {
@@ -555,6 +510,7 @@ public class MainActivity extends BaseDonateActivity
     mTabs.addTab(tab);
   }
 
+  @SuppressLint("ApplySharedPref")
   @Override
   protected void onPause() {
     super.onPause();
@@ -568,7 +524,6 @@ public class MainActivity extends BaseDonateActivity
       Config.deinit();
       Bridge.destroy();
       DrawableXmlParser.cleanup();
-      LicensingUtils.cleanup();
       VC.destroy();
       Utils.wipe(getExternalCacheDir());
     }

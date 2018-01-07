@@ -58,9 +58,6 @@ public interface IConfig {
   @Nullable
   String[] donateOptionsIds();
 
-  @Nullable
-  String licensingPublicKey();
-
   boolean persistSelectedPage();
 
   boolean changelogEnabled();

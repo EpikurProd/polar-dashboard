@@ -2,7 +2,6 @@ package com.afollestad.polar.fragments;
 
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.view.MenuItemCompat;
@@ -24,9 +23,6 @@ import butterknife.ButterKnife;
 import butterknife.OnClick;
 import butterknife.Unbinder;
 import com.afollestad.assent.Assent;
-import com.afollestad.assent.AssentCallback;
-import com.afollestad.assent.PermissionResultSet;
-import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.afollestad.materialdialogs.util.DialogUtils;
 import com.afollestad.polar.R;
@@ -132,28 +128,24 @@ public class ZooperFragment extends BasePageFragment
 
     ZooperUtil.getPreviews(
         getActivity(),
-        new ZooperUtil.PreviewCallback() {
-          @Override
-          public void onPreviewsLoaded(
-              ArrayList<PreviewItem> previews, Drawable wallpaper, Exception error) {
-            if (getActivity() == null || getActivity().isFinishing() || !isAdded()) {
-              return;
-            } else if (error != null) {
-              error.printStackTrace();
-              setListShown(true);
-              mAdapter.setPreviews(null, null);
-              mEmpty.setVisibility(View.VISIBLE);
-              if (error.getMessage().trim().isEmpty()) {
-                mEmpty.setText(error.toString());
-              } else {
-                mEmpty.setText(error.getMessage());
-              }
-              return;
+        (previews, wallpaper, error) -> {
+          if (getActivity() == null || getActivity().isFinishing() || !isAdded()) {
+            return;
+          } else if (error != null) {
+            error.printStackTrace();
+            setListShown(true);
+            mAdapter.setPreviews(null, null);
+            mEmpty.setVisibility(View.VISIBLE);
+            if (error.getMessage().trim().isEmpty()) {
+              mEmpty.setText(error.toString());
+            } else {
+              mEmpty.setText(error.getMessage());
             }
-            mPreviews = previews;
-            mWallpaper = wallpaper;
-            mAdapter.setPreviews(mPreviews, mWallpaper);
+            return;
           }
+          mPreviews = previews;
+          mWallpaper = wallpaper;
+          mAdapter.setPreviews(mPreviews, mWallpaper);
         });
   }
 
@@ -178,31 +170,23 @@ public class ZooperFragment extends BasePageFragment
     mFabInstall.hide();
     if (!Assent.isPermissionGranted(Assent.WRITE_EXTERNAL_STORAGE)) {
       Assent.requestPermissions(
-          new AssentCallback() {
-            @Override
-            public void onPermissionResult(PermissionResultSet permissionResultSet) {
-              if (permissionResultSet.allPermissionsGranted()) {
-                checkInstalled();
-              } else {
-                new MaterialDialog.Builder(getActivity())
-                    .title(R.string.permission_needed)
-                    .content(
-                        Html.fromHtml(
-                            getString(
-                                R.string.permission_needed_zooper_desc,
-                                getString(R.string.app_name))))
-                    .positiveText(android.R.string.ok)
-                    .onPositive(
-                        new MaterialDialog.SingleButtonCallback() {
-                          @Override
-                          public void onClick(
-                              @NonNull MaterialDialog dialog, @NonNull DialogAction which) {
-                            Assent.requestPermissions(
-                                ZooperFragment.this, PERM_RQ, Assent.WRITE_EXTERNAL_STORAGE);
-                          }
-                        })
-                    .show();
-              }
+          permissionResultSet -> {
+            if (permissionResultSet.allPermissionsGranted()) {
+              checkInstalled();
+            } else {
+              new MaterialDialog.Builder(getActivity())
+                  .title(R.string.permission_needed)
+                  .content(
+                      Html.fromHtml(
+                          getString(
+                              R.string.permission_needed_zooper_desc,
+                              getString(R.string.app_name))))
+                  .positiveText(android.R.string.ok)
+                  .onPositive(
+                      (dialog, which) ->
+                          Assent.requestPermissions(
+                              ZooperFragment.this, PERM_RQ, Assent.WRITE_EXTERNAL_STORAGE))
+                  .show();
             }
           },
           PERM_RQ,
@@ -215,13 +199,8 @@ public class ZooperFragment extends BasePageFragment
   private void checkInstalled() {
     ZooperUtil.checkInstalled(
         getActivity(),
-        new ZooperUtil.CheckResult() {
-          @Override
-          public void onCheckResult(
-              boolean fontsInstalled, boolean iconsetsInstalled, boolean bitmapsInstalled) {
-            performInstallZooper(fontsInstalled, iconsetsInstalled, bitmapsInstalled);
-          }
-        });
+        (fontsInstalled, iconsetsInstalled, bitmapsInstalled) ->
+            performInstallZooper(fontsInstalled, iconsetsInstalled, bitmapsInstalled));
   }
 
   private void performInstallZooper(
@@ -231,15 +210,12 @@ public class ZooperFragment extends BasePageFragment
         !fontsInstalled,
         !iconsetsInstalled,
         !bitmapsInstalled,
-        new ZooperUtil.InstallResult() {
-          @Override
-          public void onInstallResult(Exception e) {
-            mFabInstall.show();
-            if (e != null) {
-              Utils.showError(getActivity(), e);
-            } else {
-              Toast.makeText(getActivity(), R.string.assets_installed, Toast.LENGTH_SHORT).show();
-            }
+        e -> {
+          mFabInstall.show();
+          if (e != null) {
+            Utils.showError(getActivity(), e);
+          } else {
+            Toast.makeText(getActivity(), R.string.assets_installed, Toast.LENGTH_SHORT).show();
           }
         });
   }
