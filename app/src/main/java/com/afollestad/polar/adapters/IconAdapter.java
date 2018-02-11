@@ -77,18 +77,15 @@ public class IconAdapter extends SectionedRecyclerViewAdapter<IconAdapter.MainVi
         notifyDataSetChanged();
         Utils.waitForLayout(
             mRecyclerView,
-            new Utils.LayoutCallback<RecyclerView>() {
-              @Override
-              public void onLayout(RecyclerView view) {
-                List<Pair<View, String>> pairs = asList(mTransitionViews);
-                //noinspection unchecked
-                final Bundle activityOptions =
-                    ActivityOptionsCompat.makeSceneTransitionAnimation(
-                            (Activity) mContext, pairs.toArray(new Pair[pairs.size()]))
-                        .toBundle();
+            view -> {
+              List<Pair<View, String>> pairs = asList(mTransitionViews);
+              //noinspection unchecked
+              final Bundle activityOptions =
+                  ActivityOptionsCompat.makeSceneTransitionAnimation(
+                          (Activity) mContext, pairs.toArray(new Pair[pairs.size()]))
+                      .toBundle();
 
-                ((Activity) mContext).startActivityForResult(intent, 6969, activityOptions);
-              }
+              ((Activity) mContext).startActivityForResult(intent, 6969, activityOptions);
             });
       } else {
         ((Activity) mContext).startActivityForResult(intent, 6969);
@@ -97,7 +94,7 @@ public class IconAdapter extends SectionedRecyclerViewAdapter<IconAdapter.MainVi
     return true;
   }
 
-  public static <C> List<C> asList(SparseArray<C> sparseArray) {
+  private static <C> List<C> asList(SparseArray<C> sparseArray) {
     if (sparseArray == null) {
       return null;
     }
@@ -122,15 +119,15 @@ public class IconAdapter extends SectionedRecyclerViewAdapter<IconAdapter.MainVi
     mRecyclerView = recyclerView;
   }
 
-  final Context mContext;
+  private final Context mContext;
   private final RecyclerView mRecyclerView;
-  final int mIconsPerSection;
+  private final int mIconsPerSection;
   private final ClickListener mListener;
-  final ArrayList<DrawableXmlParser.Category> mCategories;
-  ArrayList<DrawableXmlParser.Category> mFiltered;
+  private final ArrayList<DrawableXmlParser.Category> mCategories;
+  private ArrayList<DrawableXmlParser.Category> mFiltered;
 
   private int mTransitionSection = -1;
-  SparseArray<Pair<View, String>> mTransitionViews;
+  private SparseArray<Pair<View, String>> mTransitionViews;
 
   public void filter(String str) {
     if (str == null || str.trim().isEmpty()) {
@@ -273,7 +270,7 @@ public class IconAdapter extends SectionedRecyclerViewAdapter<IconAdapter.MainVi
     if (res == 0) {
       holder.image.setBackgroundColor(Color.parseColor("#40000000"));
     } else {
-      Glide.with(c).fromResource().load(res).into(holder.image);
+      Glide.with(c).load(res).into(holder.image);
     }
 
     holder.itemView.setTag(

@@ -13,7 +13,7 @@ public class NoPauseAnimator extends Animator {
   private final Animator mAnimator;
   private final ArrayMap<AnimatorListener, AnimatorListener> mListeners = new ArrayMap<>();
 
-  public NoPauseAnimator(Animator animator) {
+  NoPauseAnimator(Animator animator) {
     mAnimator = animator;
   }
 
@@ -136,7 +136,7 @@ public class NoPauseAnimator extends Animator {
     private final Animator mAnimator;
     private final Animator.AnimatorListener mListener;
 
-    public AnimatorListenerWrapper(Animator animator, Animator.AnimatorListener listener) {
+    AnimatorListenerWrapper(Animator animator, Animator.AnimatorListener listener) {
       mAnimator = animator;
       mListener = listener;
     }

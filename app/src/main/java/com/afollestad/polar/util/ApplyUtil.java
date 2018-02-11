@@ -4,7 +4,6 @@ import android.annotation.SuppressLint;
 import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
@@ -28,27 +27,27 @@ public class ApplyUtil {
     LGHOME
   })
   @Retention(RetentionPolicy.SOURCE)
-  public @interface Launcher {}
+  @interface Launcher {}
 
-  public static final int UNKNOWN = -1;
-  public static final int APEX = 0;
-  public static final int NOVA = 1;
-  public static final int AVIATE = 2;
-  public static final int ADW = 3;
-  public static final int ACTION = 4;
-  public static final int SMART = 5;
-  public static final int NEXT = 6;
-  public static final int GO = 7;
-  public static final int HOLO = 8;
-  public static final int SOLO = 9;
-  public static final int KK = 10;
-  public static final int ATOM = 11;
-  public static final int INSPIRE = 12;
-  public static final int CMTE = 13;
-  public static final int LGHOME = 14;
+  static final int UNKNOWN = -1;
+  static final int APEX = 0;
+  static final int NOVA = 1;
+  static final int AVIATE = 2;
+  static final int ADW = 3;
+  static final int ACTION = 4;
+  static final int SMART = 5;
+  static final int NEXT = 6;
+  static final int GO = 7;
+  static final int HOLO = 8;
+  static final int SOLO = 9;
+  static final int KK = 10;
+  static final int ATOM = 11;
+  static final int INSPIRE = 12;
+  static final int CMTE = 13;
+  static final int LGHOME = 14;
 
   @Launcher
-  public static int launcherIdFromPkg(String pkg) {
+  private static int launcherIdFromPkg(String pkg) {
     if (pkg == null) {
       return UNKNOWN;
     }
@@ -118,13 +117,7 @@ public class ApplyUtil {
             .title(R.string.go_launcher)
             .content(Html.fromHtml(context.getString(R.string.go_launcher_notice)))
             .positiveText(android.R.string.ok)
-            .dismissListener(
-                new DialogInterface.OnDismissListener() {
-                  @Override
-                  public void onDismiss(DialogInterface dialogInterface) {
-                    applyFinish(context, launcher, cb);
-                  }
-                })
+            .dismissListener(dialogInterface -> applyFinish(context, launcher, cb))
             .show();
         break;
       default:
@@ -255,15 +248,12 @@ public class ApplyUtil {
             if (intent != null) {
               new Handler()
                   .postDelayed(
-                      new Runnable() {
-                        @Override
-                        public void run() {
-                          Intent go =
-                              new Intent("com.gau.go.launcherex.MyThemes.mythemeaction")
-                                  .putExtra("type", 1)
-                                  .putExtra("pkgname", context.getPackageName());
-                          context.sendBroadcast(go);
-                        }
+                      () -> {
+                        Intent go =
+                            new Intent("com.gau.go.launcherex.MyThemes.mythemeaction")
+                                .putExtra("type", 1)
+                                .putExtra("pkgname", context.getPackageName());
+                        context.sendBroadcast(go);
                       },
                       250);
             } else {
@@ -298,16 +288,13 @@ public class ApplyUtil {
                       new ComponentName(SOLO_LAUNCHER_PACKAGENAME, SOLO_LAUNCHER_CLASSNAME)));
           new Handler()
               .postDelayed(
-                  new Runnable() {
-                    @Override
-                    public void run() {
-                      Intent solo =
-                          new Intent(ACTION_APPLY_SOLO_THEME)
-                              .putExtra(SOLO_EXTRA_APPLY_THEME_PACKAGE, BuildConfig.APPLICATION_ID)
-                              .putExtra(
-                                  SOLO_EXTRA_APPLY_THEME_NAME, res.getString(R.string.app_name));
-                      context.sendBroadcast(solo);
-                    }
+                  () -> {
+                    Intent solo =
+                        new Intent(ACTION_APPLY_SOLO_THEME)
+                            .putExtra(SOLO_EXTRA_APPLY_THEME_PACKAGE, BuildConfig.APPLICATION_ID)
+                            .putExtra(
+                                SOLO_EXTRA_APPLY_THEME_NAME, res.getString(R.string.app_name));
+                    context.sendBroadcast(solo);
                   },
                   250);
           break;

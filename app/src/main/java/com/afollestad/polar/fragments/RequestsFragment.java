@@ -2,7 +2,6 @@ package com.afollestad.polar.fragments;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.Nullable;
@@ -24,12 +23,9 @@ import butterknife.OnClick;
 import butterknife.Unbinder;
 import com.afollestad.dragselectrecyclerview.DragSelectRecyclerView;
 import com.afollestad.dragselectrecyclerview.DragSelectRecyclerViewAdapter;
-import com.afollestad.iconrequest.App;
-import com.afollestad.iconrequest.AppsLoadCallback;
-import com.afollestad.iconrequest.AppsSelectionListener;
-import com.afollestad.iconrequest.IconRequest;
-import com.afollestad.iconrequest.RemoteConfig;
-import com.afollestad.iconrequest.RequestSendCallback;
+import com.afollestad.iconrequest.AppModel;
+import com.afollestad.iconrequest.PolarConfig;
+import com.afollestad.iconrequest.PolarRequest;
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.afollestad.materialdialogs.util.DialogUtils;
 import com.afollestad.polar.BuildConfig;
@@ -42,15 +38,12 @@ import com.afollestad.polar.util.RequestLimiter;
 import com.afollestad.polar.util.TintUtils;
 import com.afollestad.polar.util.Utils;
 import com.afollestad.polar.views.DisableableViewPager;
+import io.reactivex.disposables.CompositeDisposable;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 
 public class RequestsFragment extends BasePageFragment
-    implements AppsLoadCallback,
-        AppsSelectionListener,
-        RequestSendCallback,
-        DragSelectRecyclerViewAdapter.SelectionListener,
+    implements DragSelectRecyclerViewAdapter.SelectionListener,
         RequestsAdapter.SelectionChangedListener {
 
   private static final Object LOCK = new Object();
@@ -76,6 +69,8 @@ public class RequestsFragment extends BasePageFragment
   private int mInitialSelection = -1;
   private boolean mAppsLoaded = false;
   private boolean mIsLoading = false;
+  private PolarRequest request;
+  private CompositeDisposable subs;
 
   private final Runnable mInvalidateLimitRunnable =
       new Runnable() {
@@ -109,8 +104,8 @@ public class RequestsFragment extends BasePageFragment
   public boolean onBackPressed() {
     if (mAdapter != null) {
       if (mAdapter.getSelectedCount() > 0) {
-        if (IconRequest.get() != null) {
-          IconRequest.get().unselectAllApps();
+        if (request != null) {
+          request.deselectAll();
           mAdapter.clearSelected();
         }
         mAdapter.notifyDataSetChanged();
@@ -194,15 +189,14 @@ public class RequestsFragment extends BasePageFragment
   public boolean onOptionsItemSelected(MenuItem item) {
     synchronized (LOCK) {
       if (item.getItemId() == R.id.selectAll) {
-        final IconRequest ir = IconRequest.get();
-        if (ir != null) {
+        if (request != null) {
           if (mAdapter.getSelectedCount() == 0) {
-            ir.selectAllApps();
+            request.selectAll();
             for (int i = 0; i < mAdapter.getItemCount(); i++) {
               mAdapter.setSelected(i, true);
             }
           } else {
-            ir.unselectAllApps();
+            request.deselectAll();
             mAdapter.clearSelected();
           }
           mAdapter.notifyDataSetChanged();
@@ -244,40 +238,86 @@ public class RequestsFragment extends BasePageFragment
     progressText.setText(R.string.loading_filter);
     list.setVisibility(View.GONE);
 
-    mPager = (DisableableViewPager) getActivity().findViewById(R.id.pager);
+    mPager = getActivity().findViewById(R.id.pager);
     if (!Config.get().navDrawerModeEnabled()) {
       // Swiping is only enabled in nav drawer mode, so no need to run this code in nav drawer mode
-      list.setFingerListener(
-          new DragSelectRecyclerView.FingerListener() {
-            @Override
-            public void onDragSelectFingerAction(boolean dragActive) {
-              mPager.setPagingEnabled(!dragActive);
-            }
-          });
+      list.setFingerListener(dragActive -> mPager.setPagingEnabled(!dragActive));
     }
 
-    emptyText.setOnClickListener(
-        new View.OnClickListener() {
-          @Override
-          public void onClick(View view) {
-            onClickFab();
-          }
-        });
+    emptyText.setOnClickListener(view1 -> onClickFab());
 
-    if (savedInstanceState != null) {
-      IconRequest.restoreInstanceState(getActivity(), savedInstanceState, this, this, this);
-      final IconRequest ir = IconRequest.get();
-      if (ir != null && ir.isAppsLoaded()) {
-        mAdapter.setApps(ir.getApps());
-        mAdapter.restoreInstanceState(savedInstanceState);
-        if (!mIsLoading && mAdapter.getItemCount() > 0) {
-          emptyText.setVisibility(View.GONE);
-          progress.setVisibility(View.GONE);
-          progressText.setVisibility(View.GONE);
-          list.setVisibility(View.VISIBLE);
-        }
+    subs = new CompositeDisposable();
+    request =
+        PolarRequest.make(getActivity(), savedInstanceState)
+            .uriTransformer(
+                uri ->
+                    FileProvider.getUriForFile(
+                        getActivity(),
+                        BuildConfig.APPLICATION_ID + ".fileProvider",
+                        new File(uri.getPath())));
+    setRequestListeners();
+
+    if (!request.getLoadedApps().isEmpty()) {
+      mAdapter.setApps(request.getLoadedApps());
+      mAdapter.restoreInstanceState(savedInstanceState);
+      if (!mIsLoading && mAdapter.getItemCount() > 0) {
+        emptyText.setVisibility(View.GONE);
+        progress.setVisibility(View.GONE);
+        progressText.setVisibility(View.GONE);
+        list.setVisibility(View.VISIBLE);
       }
     }
+  }
+
+  private void setRequestListeners() {
+    subs.add(
+        request
+            .loading()
+            .subscribe(
+                isLoading -> {
+                  if (isLoading) {
+                    mAppsLoaded = false;
+                    showProgress(R.string.loading_filter);
+                  }
+                }));
+    subs.add(
+        request
+            .selectionChange()
+            .flatMap(appModel -> request.getSelectedApps().toObservable())
+            .subscribe(
+                appModels -> {
+                  if (appModels.size() == 0) {
+                    fab.hide();
+                  } else {
+                    fab.show();
+                  }
+                }));
+    subs.add(
+        request
+            .sending()
+            .subscribe(
+                isSending -> {
+                  if (isSending) {
+                    mDialog =
+                        new MaterialDialog.Builder(getActivity())
+                            .content(R.string.preparing_icon_request)
+                            .progress(true, -1)
+                            .cancelable(false)
+                            .show();
+                  }
+                }));
+    subs.add(
+        request
+            .sent()
+            .subscribe(
+                sendResult -> {
+                  if (sendResult.success()) {
+                    onRequestSent();
+                  } else {
+                    mDialog.dismiss();
+                    Utils.showError(getActivity(), sendResult.error());
+                  }
+                }));
   }
 
   @Override
@@ -291,7 +331,7 @@ public class RequestsFragment extends BasePageFragment
     super.onResume();
     reload();
     if (getActivity() != null) {
-      ((MainActivity) getActivity()).showChangelogIfNecessary(false);
+      ((MainActivity) getActivity()).showChangelogIfNecessary();
     }
     if (RequestLimiter.needed(getActivity())) {
       if (mHandler == null) {
@@ -305,7 +345,28 @@ public class RequestsFragment extends BasePageFragment
   public void onSaveInstanceState(Bundle outState) {
     super.onSaveInstanceState(outState);
     mAdapter.saveInstanceState(outState);
-    IconRequest.saveInstanceState(outState);
+    request.saveInstance(outState);
+  }
+
+  private PolarConfig getPolarConfig() {
+    PolarConfig.Builder configBuilder =
+        PolarConfig.create(getActivity())
+            .emailRecipient(getString(R.string.icon_request_email))
+            .emailSubject(
+                String.format(
+                    "%s %s", getString(R.string.app_name), getString(R.string.icon_request)))
+            .emailFooter(
+                getString(
+                    R.string.x_version_x,
+                    getString(R.string.app_name),
+                    BuildConfig.VERSION_NAME,
+                    BuildConfig.VERSION_CODE))
+            .includeDeviceInfo(true);
+    String remoteHost = Config.get().polarBackendHost();
+    if (remoteHost != null && !remoteHost.trim().isEmpty()) {
+      configBuilder.apiHost(remoteHost).apiKey(Config.get().polarBackendApiKey());
+    }
+    return configBuilder.build();
   }
 
   @SuppressLint("StringFormatInvalid")
@@ -315,36 +376,15 @@ public class RequestsFragment extends BasePageFragment
         return;
       }
       mIsLoading = true;
-      if (IconRequest.get() == null) {
-        RemoteConfig remoteConfig = null;
-        String remoteHost = Config.get().polarBackendHost();
-        if (remoteHost != null && !remoteHost.trim().isEmpty()) {
-          remoteConfig = new RemoteConfig(remoteHost, Config.get().polarBackendApiKey());
-        }
 
-        IconRequest.start(getActivity())
-            .toEmail(getString(R.string.icon_request_email))
-            .withSubject(
-                String.format(
-                    "%s %s", getString(R.string.app_name), getString(R.string.icon_request)))
-            .loadCallback(this)
-            .selectionCallback(this)
-            .sendCallback(this)
-            .remoteConfig(remoteConfig)
-            .withFooter(
-                getString(
-                    R.string.x_version_x,
-                    getString(R.string.app_name),
-                    BuildConfig.VERSION_NAME,
-                    BuildConfig.VERSION_CODE))
-            .includeDeviceInfo(true)
-            .build();
-      }
-      if (!IconRequest.get().isAppsLoaded()) {
+      if (request.getLoadedApps().isEmpty()) {
         showProgress(0);
-        IconRequest.get().loadApps();
+        subs.add(
+            request
+                .load()
+                .subscribe(loadResult -> onAppsLoaded(loadResult.apps(), loadResult.error())));
       } else {
-        onAppsLoaded(IconRequest.get().getApps(), null);
+        onAppsLoaded(request.getLoadedApps(), null);
       }
     }
   }
@@ -353,8 +393,9 @@ public class RequestsFragment extends BasePageFragment
   public void onPause() {
     super.onPause();
     synchronized (LOCK) {
-      if (getActivity() != null && getActivity().isFinishing()) {
-        IconRequest.cleanup();
+      request = null;
+      if (subs != null) {
+        subs.dispose();
       }
       if (mDialog != null) {
         mDialog.dismiss();
@@ -379,40 +420,19 @@ public class RequestsFragment extends BasePageFragment
     progressText.setText(text);
   }
 
-  @Override
-  public void onLoadingFilter() {
-    if (progressText == null) {
-      return;
-    }
-    mAppsLoaded = false;
-    showProgress(R.string.loading_filter);
-  }
-
-  @Override
-  public void onAppsLoadProgress(final int percent) {
-    if (progressText == null) {
-      return;
-    } else if (!isAdded() || getActivity() == null) {
-      return;
-    }
-    // Percent isn't used here since it happens so fast anyways
-    showProgress(R.string.loading);
-  }
-
-  @Override
-  public void onAppsLoaded(ArrayList<App> arrayList, Exception e) {
+  public void onAppsLoaded(List<AppModel> arrayList, Exception e) {
     synchronized (LOCK) {
       mIsLoading = false;
-      if (progressText == null || IconRequest.get() == null) {
+      if (progressText == null || request == null) {
         return;
       }
       emptyText.setVisibility(arrayList == null || arrayList.isEmpty() ? View.VISIBLE : View.GONE);
       mAppsLoaded = true;
-      if (IconRequest.get() == null) {
+      if (request == null) {
         return;
       }
       getActivity().invalidateOptionsMenu();
-      mAdapter.setApps(IconRequest.get().getApps());
+      mAdapter.setApps(arrayList);
       mAdapter.notifyDataSetChanged();
       emptyText.setVisibility(mAdapter.getItemCount() == 0 ? View.VISIBLE : View.GONE);
       progress.setVisibility(View.GONE);
@@ -420,51 +440,15 @@ public class RequestsFragment extends BasePageFragment
     }
   }
 
-  // Apps selection listener
-
-  @Override
-  public void onAppSelectionChanged(int count) {
-    if (count == 0) {
-      fab.hide();
-    } else {
-      fab.show();
-    }
-  }
-
-  // Request send listener
-
-  @Override
-  public void onRequestPreparing() {
-    if (getActivity() == null) {
-      return;
-    }
-    mDialog =
-        new MaterialDialog.Builder(getActivity())
-            .content(R.string.preparing_icon_request)
-            .progress(true, -1)
-            .cancelable(false)
-            .show();
-  }
-
-  @Override
-  public void onRequestError(Exception e) {
-    mDialog.dismiss();
-    Utils.showError(getActivity(), e);
-  }
-
-  @Override
-  public Uri onRequestProcessUri(Uri uri) {
-    return FileProvider.getUriForFile(
-        getActivity(), BuildConfig.APPLICATION_ID + ".fileProvider", new File(uri.getPath()));
-  }
-
-  @Override
   public void onRequestSent() {
     if (getActivity() == null) {
       return;
     }
     final Activity act = getActivity();
-    RequestLimiter.get(act).update(IconRequest.get().getSelectedApps().size());
+    subs.add(
+        request
+            .getSelectedApps()
+            .subscribe((appModels, throwable) -> RequestLimiter.get(act).update(appModels.size())));
     if (RequestLimiter.needed(getActivity())) {
       if (mHandler != null) {
         mHandler.removeCallbacks(mInvalidateLimitRunnable);
@@ -475,7 +459,7 @@ public class RequestsFragment extends BasePageFragment
     }
     mDialog.dismiss();
     fab.hide();
-    IconRequest.get().unselectAllApps();
+    request.deselectAll();
     mAdapter.clearSelected();
     mAdapter.notifyDataSetChanged();
 
@@ -495,21 +479,18 @@ public class RequestsFragment extends BasePageFragment
     }
 
     synchronized (LOCK) {
-      final IconRequest ir = IconRequest.get();
-      if (getActivity() == null || ir == null) {
+      if (getActivity() == null || request == null) {
         return;
       }
-      final List<App> apps = ir.getApps();
-      if (apps != null) {
-        for (int i = 0; i < apps.size(); i++) {
-          if (mAdapter.isIndexSelected(i + 1)) {
-            ir.selectApp(apps.get(i));
-          } else {
-            ir.unselectApp(apps.get(i));
-          }
+      final List<AppModel> apps = request.getLoadedApps();
+      for (int i = 0; i < apps.size(); i++) {
+        if (mAdapter.isIndexSelected(i + 1)) {
+          request.select(apps.get(i));
+        } else {
+          request.deselect(apps.get(i));
         }
       }
-      ir.send();
+      subs.add(request.send().subscribe());
     }
   }
 

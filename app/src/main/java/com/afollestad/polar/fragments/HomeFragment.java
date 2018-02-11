@@ -19,9 +19,6 @@ public class HomeFragment extends BasePageFragment {
 
   private Unbinder unbinder;
 
-  //    @BindView(R.id.fab)
-  //    FloatingActionButton mFab;
-
   @Nullable
   @Override
   public View onCreateView(

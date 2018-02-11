@@ -78,14 +78,10 @@ public class AboutFragment extends BasePageFragment implements AboutAdapter.Opti
         .title(R.string.donate)
         .items(optionNames)
         .itemsCallback(
-            new MaterialDialog.ListCallback() {
-              @Override
-              public void onSelection(
-                  MaterialDialog dialog, View itemView, int which, CharSequence text) {
-                MainActivity act = (MainActivity) getActivity();
-                if (act != null) {
-                  act.purchase(optionIds[which]);
-                }
+            (dialog, itemView, which, text) -> {
+              MainActivity act = (MainActivity) getActivity();
+              if (act != null) {
+                act.purchase(optionIds[which]);
               }
             })
         .show();

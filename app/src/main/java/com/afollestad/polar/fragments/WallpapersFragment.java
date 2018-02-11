@@ -166,16 +166,9 @@ public class WallpapersFragment extends BasePageFragment
         .title(R.string.wallpaper)
         .items(R.array.wallpaper_options)
         .itemsCallback(
-            new MaterialDialog.ListCallback() {
-              @Override
-              public void onSelection(
-                  MaterialDialog materialDialog,
-                  View view,
-                  final int i,
-                  CharSequence charSequence) {
-                final WallpaperUtils.Wallpaper wallpaper = mWallpapers.get(imageIndex);
-                WallpaperUtils.download(getActivity(), wallpaper, i == 0);
-              }
+            (materialDialog, view, i, charSequence) -> {
+              final WallpaperUtils.Wallpaper wallpaper = mWallpapers.get(imageIndex);
+              WallpaperUtils.download(getActivity(), wallpaper, i == 0);
             })
         .show();
   }
@@ -197,16 +190,13 @@ public class WallpapersFragment extends BasePageFragment
     mAdapter =
         new WallpaperAdapter(
             getActivity(),
-            new WallpaperAdapter.ClickListener() {
-              @Override
-              public boolean onClick(View view, int index, boolean longPress) {
-                if (longPress) {
-                  showOptions(index);
-                  return true;
-                } else {
-                  openViewer(view, index);
-                  return false;
-                }
+            (view1, index, longPress) -> {
+              if (longPress) {
+                showOptions(index);
+                return true;
+              } else {
+                openViewer(view1, index);
+                return false;
               }
             });
     mRecyclerView.setLayoutManager(
@@ -246,32 +236,28 @@ public class WallpapersFragment extends BasePageFragment
     WallpaperUtils.getAll(
         getActivity(),
         allowCached,
-        new WallpaperUtils.WallpapersCallback() {
-          @Override
-          public void onRetrievedWallpapers(
-              WallpaperUtils.WallpapersHolder wallpapers, Exception error, boolean cancelled) {
-            if (error != null) {
-              if (error instanceof BridgeException) {
-                BridgeException e = (BridgeException) error;
-                if (e.reason() == BridgeException.REASON_REQUEST_FAILED) {
-                  mEmpty.setText(R.string.unable_to_contact_server);
-                } else if (e.reason() == BridgeException.REASON_REQUEST_TIMEOUT
-                    || (e.underlyingException() != null
-                        && e.underlyingException() instanceof SocketTimeoutException)) {
-                  mEmpty.setText(R.string.unable_to_contact_server);
-                } else {
-                  mEmpty.setText(e.getMessage());
-                }
+        (wallpapers, error, cancelled) -> {
+          if (error != null) {
+            if (error instanceof BridgeException) {
+              BridgeException e = (BridgeException) error;
+              if (e.reason() == BridgeException.REASON_REQUEST_FAILED) {
+                mEmpty.setText(R.string.unable_to_contact_server);
+              } else if (e.reason() == BridgeException.REASON_REQUEST_TIMEOUT
+                  || (e.underlyingException() != null
+                      && e.underlyingException() instanceof SocketTimeoutException)) {
+                mEmpty.setText(R.string.unable_to_contact_server);
               } else {
-                mEmpty.setText(error.getMessage());
+                mEmpty.setText(e.getMessage());
               }
             } else {
-              mEmpty.setText(cancelled ? R.string.request_cancelled : R.string.no_wallpapers);
-              mWallpapers = wallpapers;
-              mAdapter.set(mWallpapers);
+              mEmpty.setText(error.getMessage());
             }
-            setListShown(true);
+          } else {
+            mEmpty.setText(cancelled ? R.string.request_cancelled : R.string.no_wallpapers);
+            mWallpapers = wallpapers;
+            mAdapter.set(mWallpapers);
           }
+          setListShown(true);
         });
   }
 

@@ -20,16 +20,16 @@ import com.afollestad.polar.views.WallpaperImageView;
 import com.afollestad.polar.views.WallpaperNameView;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.request.RequestOptions;
 import com.github.florent37.glidepalette.GlidePalette;
 import java.util.ArrayList;
 import java.util.Locale;
 
 public class WallpaperAdapter extends RecyclerView.Adapter<WallpaperAdapter.WallpaperViewHolder> {
 
-  public static final int SEARCH_RESULT_LIMIT = 10;
+  private static final int SEARCH_RESULT_LIMIT = 10;
 
   public interface ClickListener {
-
     boolean onClick(View view, int index, boolean longPress);
   }
 
@@ -83,7 +83,7 @@ public class WallpaperAdapter extends RecyclerView.Adapter<WallpaperAdapter.Wall
   public static class WallpaperViewHolder extends RecyclerView.ViewHolder
       implements View.OnClickListener, View.OnLongClickListener {
 
-    public WallpaperViewHolder(View itemView, ClickListener listener) {
+    WallpaperViewHolder(View itemView, ClickListener listener) {
       super(itemView);
       mListener = listener;
       card = ButterKnife.findById(itemView, R.id.card);
@@ -150,8 +150,10 @@ public class WallpaperAdapter extends RecyclerView.Adapter<WallpaperAdapter.Wall
       holder.colorFrame.setBackgroundColor(wallpaper.getPaletteBgColor());
       Glide.with(holder.itemView.getContext())
           .load(wallpaper.getListingImageUrl())
-          .transform(new KeepRatio(context))
-          .diskCacheStrategy(DiskCacheStrategy.RESULT)
+          .apply(
+              new RequestOptions()
+                  .transform(new KeepRatio())
+                  .diskCacheStrategy(DiskCacheStrategy.RESOURCE))
           .into(holder.image);
     } else {
       Log.d(
@@ -165,8 +167,10 @@ public class WallpaperAdapter extends RecyclerView.Adapter<WallpaperAdapter.Wall
       //noinspection unchecked
       Glide.with(holder.itemView.getContext())
           .load(wallpaper.getListingImageUrl())
-          .transform(new KeepRatio(context))
-          .diskCacheStrategy(DiskCacheStrategy.RESULT)
+          .apply(
+              new RequestOptions()
+                  .transform(new KeepRatio())
+                  .diskCacheStrategy(DiskCacheStrategy.RESOURCE))
           .listener(
               GlidePalette.with(wallpaper.getListingImageUrl())
                   .use(GlidePalette.Profile.VIBRANT)

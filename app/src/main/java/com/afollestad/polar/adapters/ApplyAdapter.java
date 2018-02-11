@@ -30,10 +30,10 @@ public class ApplyAdapter extends RecyclerView.Adapter<ApplyAdapter.ApplyVH> {
 
     @DrawableRes public final int icon;
     public final String title;
-    public final String pkg;
+    final String pkg;
     @ColorInt public final int color;
-    @ColorInt public final int colorDark;
-    public final boolean isInstalled;
+    @ColorInt final int colorDark;
+    final boolean isInstalled;
 
     public Launcher(
         Context context, @DrawableRes int icon, String title, String pkg, @ColorInt int color) {
@@ -194,7 +194,7 @@ public class ApplyAdapter extends RecyclerView.Adapter<ApplyAdapter.ApplyVH> {
     final ImageView icon;
     final TextView title;
 
-    public ApplyVH(View itemView) {
+    ApplyVH(View itemView) {
       super(itemView);
       this.card = ButterKnife.findById(itemView, R.id.card);
       this.icon = ButterKnife.findById(itemView, R.id.icon);

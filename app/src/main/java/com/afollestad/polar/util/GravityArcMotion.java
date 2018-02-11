@@ -17,11 +17,9 @@
 package com.afollestad.polar.util;
 
 import android.annotation.TargetApi;
-import android.content.Context;
 import android.graphics.Path;
 import android.os.Build.VERSION_CODES;
 import android.transition.ArcMotion;
-import android.util.AttributeSet;
 
 /**
  * A tweak to {@link ArcMotion} which slightly alters the path calculation. In the real world
@@ -50,10 +48,6 @@ public class GravityArcMotion extends ArcMotion {
   private float mMaximumTangent = DEFAULT_MAX_TANGENT;
 
   public GravityArcMotion() {}
-
-  public GravityArcMotion(Context context, AttributeSet attrs) {
-    super(context, attrs);
-  }
 
   /** @inheritDoc */
   @Override

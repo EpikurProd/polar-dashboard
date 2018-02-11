@@ -11,14 +11,15 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import butterknife.ButterKnife;
 import com.afollestad.dragselectrecyclerview.DragSelectRecyclerViewAdapter;
-import com.afollestad.iconrequest.App;
+import com.afollestad.iconrequest.AppModel;
 import com.afollestad.materialdialogs.util.DialogUtils;
 import com.afollestad.polar.R;
 import com.afollestad.polar.config.Config;
 import com.afollestad.polar.util.RequestLimiter;
 import com.afollestad.polar.util.TintUtils;
 import com.afollestad.polar.util.Utils;
-import java.util.ArrayList;
+import com.bumptech.glide.Glide;
+import java.util.List;
 
 /** @author Aidan Follestad (afollestad) */
 public class RequestsAdapter extends DragSelectRecyclerViewAdapter<RequestsAdapter.RequestVH> {
@@ -29,7 +30,7 @@ public class RequestsAdapter extends DragSelectRecyclerViewAdapter<RequestsAdapt
   }
 
   private int mAllowRequest;
-  private ArrayList<App> mApps;
+  private List<AppModel> mApps;
   private final SelectionChangedListener mListener;
 
   public RequestsAdapter(Context context, SelectionChangedListener listener) {
@@ -41,7 +42,7 @@ public class RequestsAdapter extends DragSelectRecyclerViewAdapter<RequestsAdapt
     mListener = listener;
   }
 
-  public void setApps(ArrayList<App> apps) {
+  public void setApps(List<AppModel> apps) {
     mApps = apps;
     notifyDataSetChanged();
   }
@@ -97,9 +98,9 @@ public class RequestsAdapter extends DragSelectRecyclerViewAdapter<RequestsAdapt
       return;
     }
 
-    final App app = mApps.get(position - 1);
-    app.loadIcon(holder.image);
-    holder.title.setText(app.getName());
+    final AppModel app = mApps.get(position - 1);
+    Glide.with(holder.image).load(app).into(holder.image);
+    holder.title.setText(app.name());
 
     if (holder.card != null) {
       holder.card.setForeground(Utils.createCardSelector(holder.itemView.getContext()));

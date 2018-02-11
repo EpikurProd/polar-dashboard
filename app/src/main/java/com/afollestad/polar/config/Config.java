@@ -1,5 +1,6 @@
 package com.afollestad.polar.config;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
@@ -9,6 +10,7 @@ import android.support.annotation.Nullable;
 import com.afollestad.polar.R;
 
 /** @author Aidan Follestad (afollestad) */
+@SuppressLint("ApplySharedPref")
 public class Config implements IConfig {
 
   private Config(@Nullable Context context) {
@@ -214,15 +216,6 @@ public class Config implements IConfig {
       return null;
     }
     return mR.getStringArray(R.array.donate_option_ids);
-  }
-
-  @Nullable
-  @Override
-  public String licensingPublicKey() {
-    if (mR == null) {
-      return null;
-    }
-    return mR.getString(R.string.licensing_public_key);
   }
 
   @Override

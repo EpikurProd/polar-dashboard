@@ -3,7 +3,6 @@ package com.afollestad.polar.util;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.media.MediaScannerConnection;
@@ -12,7 +11,6 @@ import android.os.Build;
 import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.support.annotation.ColorInt;
-import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.StringRes;
 import android.support.v4.content.FileProvider;
@@ -20,19 +18,15 @@ import android.util.Log;
 import android.widget.Toast;
 import com.afollestad.ason.AsonIgnore;
 import com.afollestad.assent.Assent;
-import com.afollestad.assent.AssentCallback;
-import com.afollestad.assent.PermissionResultSet;
 import com.afollestad.bridge.Bridge;
 import com.afollestad.bridge.BridgeException;
 import com.afollestad.bridge.Callback;
 import com.afollestad.bridge.Request;
 import com.afollestad.bridge.Response;
-import com.afollestad.bridge.ResponseConvertCallback;
 import com.afollestad.bridge.annotations.ContentType;
 import com.afollestad.inquiry.Inquiry;
 import com.afollestad.inquiry.annotations.Column;
 import com.afollestad.inquiry.annotations.Table;
-import com.afollestad.inquiry.callbacks.RunCallback;
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.afollestad.polar.BuildConfig;
 import com.afollestad.polar.R;
@@ -65,6 +59,7 @@ public class WallpaperUtils {
 
     public Wallpaper[] wallpapers;
 
+    @SuppressWarnings("unused")
     public WallpapersHolder() {}
 
     WallpapersHolder(Wallpaper[] wallpapers) {
@@ -78,6 +73,7 @@ public class WallpaperUtils {
 
     public Wallpaper() {}
 
+    @SuppressWarnings("unused")
     @AsonIgnore
     @Column(primaryKey = true, notNull = true, autoIncrement = true)
     public long _id;
@@ -215,13 +211,7 @@ public class WallpaperUtils {
       Inquiry.get(iname)
           .insert(Wallpaper.class)
           .values(holder.wallpapers)
-          .run(
-              new RunCallback<Long[]>() {
-                @Override
-                public void result(Long[] changed) {
-                  Inquiry.destroy(iname);
-                }
-              });
+          .run(changed -> Inquiry.destroy(iname));
     } catch (Throwable t) {
       t.printStackTrace();
     }
@@ -253,52 +243,46 @@ public class WallpaperUtils {
         .tag(WallpapersFragment.class.getName())
         .asClass(
             WallpapersHolder.class,
-            new ResponseConvertCallback<WallpapersHolder>() {
-              @Override
-              public void onResponse(
-                  @NonNull Response response,
-                  @Nullable WallpapersHolder holder,
-                  @Nullable BridgeException e) {
-                if (e != null) {
+            (response, holder, e) -> {
+              if (e != null) {
+                callback.onRetrievedWallpapers(
+                    null, e, e.reason() == BridgeException.REASON_REQUEST_CANCELLED);
+              } else {
+                if (holder == null) {
                   callback.onRetrievedWallpapers(
-                      null, e, e.reason() == BridgeException.REASON_REQUEST_CANCELLED);
-                } else {
-                  if (holder == null) {
-                    callback.onRetrievedWallpapers(
-                        null, new Exception("No wallpapers returned."), false);
-                    return;
-                  }
-                  try {
-                    for (Wallpaper wallpaper : holder.wallpapers) {
-                      if (wallpaper.name == null) {
-                        wallpaper.name = "";
-                      }
-                      if (wallpaper.author == null) {
-                        wallpaper.author = "";
-                      }
+                      null, new Exception("No wallpapers returned."), false);
+                  return;
+                }
+                try {
+                  for (Wallpaper wallpaper : holder.wallpapers) {
+                    if (wallpaper.name == null) {
+                      wallpaper.name = "";
                     }
+                    if (wallpaper.author == null) {
+                      wallpaper.author = "";
+                    }
+                  }
 
-                    Log.d(
-                        "WallpaperUtils",
-                        String.format("Loaded %d wallpapers from web.", holder.length()));
-                    if (holder.length() > 0) {
-                      try {
-                        Inquiry.get(iname).insert(Wallpaper.class).values(holder.wallpapers).run();
-                      } catch (Throwable t) {
-                        t.printStackTrace();
-                      }
+                  Log.d(
+                      "WallpaperUtils",
+                      String.format("Loaded %d wallpapers from web.", holder.length()));
+                  if (holder.length() > 0) {
+                    try {
+                      Inquiry.get(iname).insert(Wallpaper.class).values(holder.wallpapers).run();
+                    } catch (Throwable t) {
+                      t.printStackTrace();
                     }
-                    callback.onRetrievedWallpapers(holder, null, false);
-                  } catch (Throwable e1) {
-                    Log.d(
-                        "WallpaperUtils",
-                        String.format("Failed to load wallpapers... %s", e1.getMessage()));
-                    if (e1 instanceof Exception) {
-                      callback.onRetrievedWallpapers(null, (Exception) e1, false);
-                    }
-                  } finally {
-                    Inquiry.destroy(iname);
                   }
+                  callback.onRetrievedWallpapers(holder, null, false);
+                } catch (Throwable e1) {
+                  Log.d(
+                      "WallpaperUtils",
+                      String.format("Failed to load wallpapers... %s", e1.getMessage()));
+                  if (e1 instanceof Exception) {
+                    callback.onRetrievedWallpapers(null, (Exception) e1, false);
+                  }
+                } finally {
+                  Inquiry.destroy(iname);
                 }
               }
             });
@@ -332,15 +316,12 @@ public class WallpaperUtils {
 
     if (!Assent.isPermissionGranted(Assent.WRITE_EXTERNAL_STORAGE) && !apply) {
       Assent.requestPermissions(
-          new AssentCallback() {
-            @Override
-            public void onPermissionResult(PermissionResultSet permissionResultSet) {
-              if (permissionResultSet.isGranted(Assent.WRITE_EXTERNAL_STORAGE)) {
-                download(contextCache, wallpaperCache, applyCache);
-              } else {
-                Toast.makeText(context, R.string.write_storage_permission_denied, Toast.LENGTH_LONG)
-                    .show();
-              }
+          permissionResultSet -> {
+            if (permissionResultSet.isGranted(Assent.WRITE_EXTERNAL_STORAGE)) {
+              download(contextCache, wallpaperCache, applyCache);
+            } else {
+              Toast.makeText(context, R.string.write_storage_permission_denied, Toast.LENGTH_LONG)
+                  .show();
             }
           },
           69,
@@ -384,14 +365,11 @@ public class WallpaperUtils {
               .progress(true, -1)
               .cancelable(true)
               .cancelListener(
-                  new DialogInterface.OnCancelListener() {
-                    @Override
-                    public void onCancel(DialogInterface dialogInterface) {
-                      if (contextCache != null && !contextCache.isFinishing()) {
-                        showToast(contextCache, R.string.download_cancelled);
-                      }
-                      Bridge.cancelAll().tag(WallpaperUtils.class.getName()).commit();
+                  dialogInterface -> {
+                    if (contextCache != null && !contextCache.isFinishing()) {
+                      showToast(contextCache, R.string.download_cancelled);
                     }
+                    Bridge.cancelAll().tag(WallpaperUtils.class.getName()).commit();
                   })
               .show();
       Bridge.get(wallpaper.url)
@@ -429,11 +407,9 @@ public class WallpaperUtils {
           context,
           new String[] {fileCache.getAbsolutePath()},
           null,
-          new MediaScannerConnection.OnScanCompletedListener() {
-            public void onScanCompleted(String path, Uri uri) {
-              Log.i("WallpaperScan", "Scanned " + path + ":");
-              Log.i("WallpaperScan", "-> uri = " + uri);
-            }
+          (path, uri) -> {
+            Log.i("WallpaperScan", "Scanned " + path + ":");
+            Log.i("WallpaperScan", "-> uri = " + uri);
           });
     }
 

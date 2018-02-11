@@ -1,5 +1,6 @@
 package com.afollestad.polar.viewer;
 
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.view.ViewCompat;
@@ -18,9 +19,11 @@ import com.afollestad.polar.util.KeepRatio;
 import com.afollestad.polar.util.WallpaperUtils;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.Priority;
+import com.bumptech.glide.load.DataSource;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
-import com.bumptech.glide.load.resource.drawable.GlideDrawable;
+import com.bumptech.glide.load.engine.GlideException;
 import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.RequestOptions;
 import com.bumptech.glide.request.target.Target;
 
 /** @author Aidan Follestad (afollestad) */
@@ -108,39 +111,35 @@ public class ViewerPageFragment extends AssentFragment {
 
     Glide.with(this)
         .load(mWallpaper.getListingImageUrl())
-        .priority(Priority.IMMEDIATE)
-        .diskCacheStrategy(DiskCacheStrategy.RESULT)
-        .transform(new KeepRatio(getActivity()))
-        .override(thumbWidth, thumbHeight)
+        .apply(
+            new RequestOptions()
+                .priority(Priority.IMMEDIATE)
+                .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
+                .transform(new KeepRatio())
+                .override(thumbWidth, thumbHeight))
         .listener(
-            new RequestListener<String, GlideDrawable>() {
+            new RequestListener<Drawable>() {
               @Override
-              public boolean onException(
-                  Exception e,
-                  String model,
-                  Target<GlideDrawable> target,
+              public boolean onLoadFailed(
+                  @Nullable GlideException e,
+                  Object model,
+                  Target<Drawable> target,
                   boolean isFirstResource) {
                 return false;
               }
 
               @Override
               public boolean onResourceReady(
-                  GlideDrawable resource,
-                  String model,
-                  Target<GlideDrawable> target,
-                  boolean isFromMemoryCache,
+                  Drawable resource,
+                  Object model,
+                  Target<Drawable> target,
+                  DataSource dataSource,
                   boolean isFirstResource) {
                 if (isActive) {
                   ((ViewerActivity) getActivity()).supportStartPostponedEnterTransition();
                 }
                 mPhoto.postDelayed(
-                    new Runnable() {
-                      @Override
-                      public void run() {
-                        loadFullPhoto();
-                      }
-                    },
-                    ViewerActivity.SHARED_ELEMENT_TRANSITION_DURATION);
+                    () -> loadFullPhoto(), ViewerActivity.SHARED_ELEMENT_TRANSITION_DURATION);
                 return false;
               }
             })
@@ -150,15 +149,17 @@ public class ViewerPageFragment extends AssentFragment {
   private void loadFullPhoto() {
     Glide.with(ViewerPageFragment.this)
         .load(mWallpaper.url)
-        .transform(new KeepRatio(getActivity()))
-        .diskCacheStrategy(DiskCacheStrategy.RESULT)
+        .apply(
+            new RequestOptions()
+                .transform(new KeepRatio())
+                .diskCacheStrategy(DiskCacheStrategy.RESOURCE))
         .listener(
-            new RequestListener<String, GlideDrawable>() {
+            new RequestListener<Drawable>() {
               @Override
-              public boolean onException(
-                  Exception e,
-                  String model,
-                  Target<GlideDrawable> target,
+              public boolean onLoadFailed(
+                  @Nullable GlideException e,
+                  Object model,
+                  Target<Drawable> target,
                   boolean isFirstResource) {
                 mProgress.setVisibility(View.GONE);
                 return false;
@@ -166,20 +167,17 @@ public class ViewerPageFragment extends AssentFragment {
 
               @Override
               public boolean onResourceReady(
-                  GlideDrawable resource,
-                  String model,
-                  Target<GlideDrawable> target,
-                  boolean isFromMemoryCache,
+                  Drawable resource,
+                  Object model,
+                  Target<Drawable> target,
+                  DataSource dataSource,
                   boolean isFirstResource) {
                 mProgress.setVisibility(View.GONE);
                 mPhoto.setVisibility(View.VISIBLE);
                 thumbnail.postDelayed(
-                    new Runnable() {
-                      @Override
-                      public void run() {
-                        if (thumbnail != null) {
-                          thumbnail.setVisibility(View.INVISIBLE);
-                        }
+                    () -> {
+                      if (thumbnail != null) {
+                        thumbnail.setVisibility(View.INVISIBLE);
                       }
                     },
                     500);

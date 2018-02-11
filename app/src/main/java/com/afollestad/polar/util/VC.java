@@ -1,5 +1,6 @@
 package com.afollestad.polar.util;
 
+import android.annotation.SuppressLint;
 import android.app.Fragment;
 import android.content.Context;
 import android.graphics.drawable.Drawable;
@@ -11,6 +12,7 @@ import android.support.v4.content.ContextCompat;
 /** @author Aidan Follestad (afollestad) */
 public class VC {
 
+  @SuppressLint("StaticFieldLeak")
   private static Context mContext;
 
   public static void init(Context context) {

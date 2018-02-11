@@ -31,14 +31,14 @@ public class AboutAdapter extends RecyclerView.Adapter<AboutAdapter.MainViewHold
 
   public static class AboutItem {
 
-    public final String coverImage;
-    public final String profileImage;
+    final String coverImage;
+    final String profileImage;
     public final String title;
-    public final String description;
-    public final String[] buttonNames;
-    public final String[] buttonLinks;
+    final String description;
+    final String[] buttonNames;
+    final String[] buttonLinks;
 
-    public AboutItem(
+    AboutItem(
         String coverImage,
         String profileImage,
         String title,
@@ -118,7 +118,7 @@ public class AboutAdapter extends RecyclerView.Adapter<AboutAdapter.MainViewHold
   public static class MainViewHolder extends RecyclerView.ViewHolder
       implements View.OnClickListener {
 
-    public MainViewHolder(View itemView, OptionsClickListener optionsCb) {
+    MainViewHolder(View itemView, OptionsClickListener optionsCb) {
       super(itemView);
       cover = ButterKnife.findById(itemView, R.id.cover);
       image = ButterKnife.findById(itemView, R.id.image);

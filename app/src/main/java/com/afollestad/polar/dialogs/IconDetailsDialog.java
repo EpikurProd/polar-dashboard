@@ -61,22 +61,19 @@ public class IconDetailsDialog extends DialogFragment {
       if (bmp != null) {
         Palette.from(bmp)
             .generate(
-                new Palette.PaletteAsyncListener() {
-                  @Override
-                  public void onGenerated(Palette palette) {
-                    if (getDialog() == null || !isAdded() || getActivity() == null) {
-                      return;
-                    }
-                    final MaterialDialog dialog = (MaterialDialog) getDialog();
-                    int color = palette.getVibrantColor(0);
-                    if (color == 0) {
-                      color = palette.getMutedColor(0);
-                    }
-                    if (color == 0) {
-                      color = DialogUtils.resolveColor(getActivity(), R.attr.colorAccent);
-                    }
-                    dialog.getActionButton(DialogAction.NEGATIVE).setTextColor(color);
+                palette -> {
+                  if (getDialog() == null || !isAdded() || getActivity() == null) {
+                    return;
                   }
+                  final MaterialDialog dialog1 = (MaterialDialog) getDialog();
+                  int color = palette.getVibrantColor(0);
+                  if (color == 0) {
+                    color = palette.getMutedColor(0);
+                  }
+                  if (color == 0) {
+                    color = DialogUtils.resolveColor(getActivity(), R.attr.colorAccent);
+                  }
+                  dialog1.getActionButton(DialogAction.NEGATIVE).setTextColor(color);
                 });
       }
     } else {

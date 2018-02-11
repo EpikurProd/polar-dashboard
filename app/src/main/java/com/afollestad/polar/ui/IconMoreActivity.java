@@ -88,20 +88,10 @@ public class IconMoreActivity extends BaseThemedActivity
     supportPostponeEnterTransition();
     Utils.waitForLayout(
         mRecyclerView,
-        new Utils.LayoutCallback<RecyclerView>() {
-          @Override
-          public void onLayout(RecyclerView view) {
-            //A small delay for RecyclerView to draw images
-            //TODO: Use a better method than just waiting
-            view.postDelayed(
-                new Runnable() {
-                  @Override
-                  public void run() {
-                    supportStartPostponedEnterTransition();
-                  }
-                },
-                50);
-          }
+        view -> {
+          //A small delay for RecyclerView to draw images
+          //TODO: Use a better method than just waiting
+          view.postDelayed(this::supportStartPostponedEnterTransition, 50);
         });
   }
 
